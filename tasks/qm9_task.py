@@ -5,6 +5,7 @@ import tensorflow as tf
 import numpy as np
 from dpu_utils.utils import RichPath
 
+from .sdrf import stochastic_discrete_ricci_flow
 from .sparse_graph_task import Sparse_Graph_Task, DataFold, MinibatchData
 from utils import MLP
 
@@ -93,6 +94,8 @@ class QM9_Task(Sparse_Graph_Task):
             num_fwd_edge_types = max(num_fwd_edge_types, max([e[1] for e in g['graph']]))
         if self.params['add_self_loop_edges']:
             num_fwd_edge_types += 1
+        if self.params['preprocess_with_sdrf']:
+            num_fwd_edge_types += 1
         self.__num_edge_types = max(self.num_edge_types,
                                     num_fwd_edge_types * (1 if self.params['tie_fwd_bkwd_edges'] else 2))
         self.__annotation_size = max(self.__annotation_size, len(data[0]["node_features"][0]))
@@ -115,11 +118,37 @@ class QM9_Task(Sparse_Graph_Task):
             -> Tuple[List[np.ndarray], np.ndarray]:
         type_to_adj_list = [[] for _ in range(self.num_edge_types)]  # type: List[List[Tuple[int, int]]]
         type_to_num_incoming_edges = np.zeros(shape=(self.num_edge_types, num_nodes,))
+
+        adj_matrix = np.zeros((num_nodes, num_nodes))
         for src, e, dest in graph:
+            if src != dest:
+                adj_matrix[src, dest] = adj_matrix[dest, src] = 1
+
+        if self.params['preprocess_with_sdrf']:
+            added_edges, removed_edges = stochastic_discrete_ricci_flow(
+                adj_matrix,
+                num_nodes,
+                self.params['sdrf_curvature_fn'],
+                target_curvature=self.params['sdrf_target_curvature'],
+                scaling=self.params['sdrf_scaling'],
+                prioritise_betweenness=self.params['sdrf_prioritise_betweenness'],
+                consider_positivity=self.params['sdrf_consider_positivity'],
+                ricci_step=self.params['sdrf_ricci_step'],
+                max_steps=self.params['sdrf_max_steps']
+            )
+            e = 1 if self.params['add_self_loop_edges'] else 0 # 0 or 1 will be the SDRF edge type
+            for src, dest in added_edges:
+                type_to_num_incoming_edges[e, dest] += 1
+                type_to_adj_list[e].append((src, dest))
+            
+        for src, e, dest in graph:
+            if (src, dest) in removed_edges or (dest, src) in removed_edges:
+                continue
+            fwd_edge_type = e - 1
             if self.params['add_self_loop_edges']:
-                fwd_edge_type = e  # 0 will be the self-loop type
-            else:
-                fwd_edge_type = e - 1  # Make edges start from 0
+                fwd_edge_type += 1  # make room for 0 to be the self-loop type
+            if self.params['preprocess_with_sdrf']:
+                fwd_edge_type += 1  # make room for 0 or 1 to be the SDRF added edge type
             type_to_adj_list[fwd_edge_type].append((src, dest))
             type_to_num_incoming_edges[fwd_edge_type, dest] += 1
             if self.params['tie_fwd_bkwd_edges']:
