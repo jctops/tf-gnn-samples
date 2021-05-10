@@ -45,7 +45,7 @@ def run(args):
                 for seed in range(1, 1 + num_seeds):
                     logfile = os.path.join(target_dir, "%s_task%i_seed%i_sdrf%s.txt" % (model, task_id, seed, use_sdrf))
                     with open(logfile, "w") as log_fh:
-                        subprocess.check_call(["python",
+                        subprocess.check_output(["python",
                                             "train.py",
                                             "--run-test",
                                             model,
@@ -53,7 +53,7 @@ def run(args):
                                             "--model-param-overrides",
                                             "{\"random_seed\": %i}" % seed,
                                             "--task-param-overrides",
-                                            "{\"task_ids\": [%i], \"preprocess_with_sdrf\": %s}" % (task_id, use_sdrf),
+                                            "{\"task_ids\": [%i], \"preprocess_with_sdrf\": \"%s\"}" % (task_id, use_sdrf),
                                             ],
                                             stdout=log_fh,
                                             stderr=log_fh)
