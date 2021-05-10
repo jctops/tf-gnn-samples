@@ -58,12 +58,11 @@ def focused_stochastic_ricci_step(G, A, N, curvature_fn, target_curvature=0, giv
     candidate_adds = []
     
     for i, j in ijs:
-        for x in neighborhood_leq(G, i, 1):
-            for y in neighborhood_leq(G, j, 1):
-                if y < x:
-                    x,y = y,x
-                if x != y and not A[x,y] and not (x,y) in candidates:
-                    candidates[(x,y)] = mses[mapping[(x,y)]]
+        for x in list(G.neighbors(i)) + [i]:
+            for y in list(G.neighbors(j)) + [j]:
+                x_, y_ = (x,y) if x<y else (y,x)
+                if x_ != y_ and not A[x_,y_] and not (x_,y_) in candidates and mses[mapping[(x_,y_)]] > 0:
+                    candidates[(x_,y_)] = mses[mapping[(x_,y_)]]
         if prioritise_betweenness and len(candidates) > 0:
             break
     
@@ -113,25 +112,29 @@ def stochastic_discrete_ricci_flow(
             prioritise_betweenness=prioritise_betweenness,
             consider_positivity=consider_positivity
         )
+        if only_allow_positive_actions:
+            scores = {k:v*scaling for k,v in scores.items() if v > 0}
+        # print(scores)
         scores_keys = list(scores.keys())
         scores_values = np.array(list(scores.values()))
-        if np.any(np.array() > 0):
-            if only_allow_positive_actions:
-                scores = {k:v for k,v in scores.items() if v > 0}
+        if np.any(scores_values > 0):
             if len(scores_keys) > 1:
                 x,y = scores_keys[
                     np.random.choice(
                         range(len(scores_keys)),
-                        p=softmax(scores_values*scaling)
+                        p=softmax(scores_values)
                     )
                 ]
             else:
                 x,y = scores_keys[0]
             if G.has_edge(x,y):
                 G.remove_edge(x,y)
+                A[x,y] = A[y,x] = 0
                 removed_edges.append((x,y))
             else:
+                # print(f'Adding edge ({x},{y})')
                 G.add_edge(x,y)
+                A[x,y] = A[y,x] = 1
                 added_edges.append((x,y))
             i -= 1
         else:

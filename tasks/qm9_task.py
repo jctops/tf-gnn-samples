@@ -37,6 +37,15 @@ class QM9_Task(Sparse_Graph_Task):
             'use_graph': True,
             'activation_function': "tanh",
             'out_layer_dropout_keep_prob': 1.0,
+
+            'preprocess_with_sdrf': True,
+            'sdrf_curvature_fn': 'uma_forman',
+            'sdrf_target_curvature': 0,
+            'sdrf_scaling': 5,
+            'sdrf_prioritise_betweenness': True,
+            'sdrf_consider_positivity': True,
+            'sdrf_ricci_step': 'fsdrf',
+            'sdrf_max_steps': 5,
         })
         return params
 
@@ -140,6 +149,8 @@ class QM9_Task(Sparse_Graph_Task):
             for src, dest in added_edges:
                 type_to_num_incoming_edges[e, dest] += 1
                 type_to_adj_list[e].append((src, dest))
+        else:
+            added_edges, removed_edges = [], []
             
         for src, e, dest in graph:
             if (src, dest) in removed_edges or (dest, src) in removed_edges:
