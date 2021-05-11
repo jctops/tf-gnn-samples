@@ -132,7 +132,10 @@ class QM9_Task(Sparse_Graph_Task):
         for src, e, dest in graph:
             if src != dest:
                 adj_matrix[src, dest] = adj_matrix[dest, src] = 1
-
+        
+        if isinstance(self.params['preprocess_with_sdrf'], str):
+           self.params['preprocess_with_sdrf'] = (self.params['preprocess_with_sdrf'] != 'False')
+        
         if self.params['preprocess_with_sdrf']:
             added_edges, removed_edges = stochastic_discrete_ricci_flow(
                 adj_matrix,

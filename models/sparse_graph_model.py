@@ -65,7 +65,11 @@ class Sparse_Graph_Model(ABC):
         # Build the actual model
         random.seed(params['random_seed'])
         np.random.seed(params['random_seed'])
-        config = tf.ConfigProto()
+        config = tf.ConfigProto(
+            intra_op_parallelism_threads=8,
+            inter_op_parallelism_threads=8,
+            allow_soft_placement=True
+        )
         config.gpu_options.allow_growth = True
         self.graph = tf.Graph()
         self.sess = tf.Session(graph=self.graph, config=config)
