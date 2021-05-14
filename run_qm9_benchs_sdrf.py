@@ -64,14 +64,14 @@ def run(args):
                             time_match = TIME_RE.search(line)
                             res_match = TEST_RES_RE.search(line)
                             if time_match is not None:
-                                results[use_sdrf][model][task_id]["times"].append(int(time_match.groups()[0]))
+                                results[use_sdrf][model][0]["times"].append(int(time_match.groups()[0]))
                             elif res_match is not None:
-                                results[use_sdrf][model][task_id]["test_errors"].append(float(res_match.groups()[1]))
+                                results[use_sdrf][model][0]["test_errors"].append(float(res_match.groups()[1]))
 
     row_fmt_string = "%7s " + "&% 35s " * len(MODEL_TYPES) + "\\\\"
     print(row_fmt_string % tuple([""] + MODEL_TYPES))
     for task_id, task in enumerate(TASKS):
-        task_id = task_id_
+        task_id = 0 #task_id_
         model_results = []
         for use_sdrf in USE_SDRF:
             for model in MODEL_TYPES:

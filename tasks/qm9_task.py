@@ -45,7 +45,7 @@ class QM9_Task(Sparse_Graph_Task):
             'sdrf_prioritise_betweenness': True,
             'sdrf_consider_positivity': True,
             'sdrf_ricci_step': 'fsdrf',
-            'sdrf_max_steps': 5,
+            'sdrf_max_steps': 10,
         })
         return params
 

@@ -66,8 +66,8 @@ class Sparse_Graph_Model(ABC):
         random.seed(params['random_seed'])
         np.random.seed(params['random_seed'])
         config = tf.ConfigProto(
-            intra_op_parallelism_threads=8,
-            inter_op_parallelism_threads=8,
+            intra_op_parallelism_threads=28,
+            inter_op_parallelism_threads=28,
             allow_soft_placement=True
         )
         config.gpu_options.allow_growth = True
