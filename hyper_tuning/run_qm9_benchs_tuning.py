@@ -55,7 +55,7 @@ def run(args):
     num_seeds = int(args.get('--num-runs'))
     results = {}
     for arguments in ARGUMENTS:
-        arguments_str = ';'.join(['f{x}={y}' for x,y in zip(list(uma_args.keys()), arguments)])
+        arguments_str = ';'.join([f'{x}={y}' for x,y in zip(list(uma_args.keys()), arguments)])
         curvature_fn, consider_positivity, target_curvature, scaling, max_steps = arguments
         results[arguments_str] = {}
         for model in MODEL_TYPES:
@@ -93,7 +93,7 @@ def run(args):
         task_id = 0 #task_id_
         model_results = []
         for arguments in ARGUMENTS:
-            arguments_str = ';'.join(['f{x}={y}' for x,y in zip(list(uma_args.keys()), arguments)])
+            arguments_str = ';'.join([f'{x}={y}' for x,y in zip(list(uma_args.keys()), arguments)])
             for model in MODEL_TYPES:
                 err = np.mean(results[arguments_str][model][task_id]["test_errors"])
                 std = np.std(results[arguments_str][model][task_id]["test_errors"])
