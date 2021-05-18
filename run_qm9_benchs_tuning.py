@@ -21,14 +21,16 @@ uma_args = {
     'consider_positivity':[True, False],
     'target_curvature':[-1,0,1],
     'scaling':[1,2,5,10],
-    'max_steps':[2,3,5,10]
+    # 'max_steps':[2,3,5,10]
+    'max_steps':[0.1,0.2,0.3,0.4]
 }
 unbiased_args = {
     'curvature_fn':['unbiased_forman'],
     'consider_positivity':[True, False],
     'target_curvature':[-0.5,0,0.5],
     'scaling':[10,25,100],
-    'max_steps':[2,3,5,10]
+    # 'max_steps':[2,3,5,10]
+    'max_steps':[0.1,0.2,0.3,0.4]
 }
 ARGUMENTS = list(product(*list(uma_args.values()))) + list(product(*list(unbiased_args.values())))
 
@@ -73,7 +75,7 @@ def run(args):
                                             '{\"random_seed\": %i}' % seed,
                                             "--task-param-overrides",
                                             '''{\"task_ids\": [%i], \"preprocess_with_sdrf\": \"True\", \"sdrf_curvature_fn\": \"%s\",
-\"sdrf_consider_positivity\": \"%s\", \"sdrf_target_curvature\": %f, \"sdrf_scaling\": %i, \"sdrf_max_steps\": %i}''' % \
+\"sdrf_consider_positivity\": \"%s\", \"sdrf_target_curvature\": %f, \"sdrf_scaling\": %i, \"sdrf_max_steps\": %f}''' % \
 (task_id, curvature_fn, consider_positivity, target_curvature, scaling, max_steps),
                                             ],
                                             stdout=log_fh,
