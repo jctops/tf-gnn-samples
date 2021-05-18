@@ -190,7 +190,13 @@ def stochastic_discrete_ricci_flow(
     if isinstance(ricci_step, str):
         ricci_step = STR_TO_RICCI_STEP[ricci_step]
     
-    i = max_steps if max_steps is not None else -1
+    if max_steps is None:
+        i = -1
+    elif max_steps < 1:
+        i = np.ceil((A.sum() / 2) * max_steps)
+    else:
+        i = max_steps
+    
     while i != 0:
         scores = ricci_step(
             G,
