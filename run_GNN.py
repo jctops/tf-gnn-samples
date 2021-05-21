@@ -20,7 +20,7 @@ MODEL_TYPES = ["GGNN", "RGCN", "RGAT", "RGIN"]
 TASKS = ["mu", "alpha", "HOMO", "LUMO", "gap", "R2", "ZPVE", "U0", "U", "H", "G", "Cv", "Omega"]
 
 
-def setup(opt):
+def setup(opt, data_path):
   azure_info_path = opt.get('--azure-info', None)
   # get model and task
   model_cls, additional_model_params = name_to_model_class(opt['model_name'])
@@ -63,7 +63,6 @@ def setup(opt):
   task = task_cls(task_params)
 
   # load the data
-  data_path = opt.get('--data-path') or task.default_data_path()
   data_path = RichPath.create(data_path, azure_info_path)
   task.load_data(data_path)
 
