@@ -29,6 +29,8 @@ def setup(opt, data_path='data/qm9'):
   # Collect parameters from first the class defaults, potential task defaults, and then CLI:
   task_params = task_cls.default_params()
   task_params.update(additional_task_params)
+  # bit sloppy as this puts loads of uneeded params in task_params, but no real harm done.
+  task_params.update(opt)
   model_params = model_cls.default_params()
   model_params.update(additional_model_params)
 
@@ -47,7 +49,6 @@ def setup(opt, data_path='data/qm9'):
 
   # Load overrides from command line:
   task_params.update(json.loads(opt.get('--task-param-overrides') or '{}'))
-  task_params['preprocess_with_sdrf'] = False
   print(f"task parameters: {task_params}")
   model_params.update(json.loads(opt.get('--model-param-overrides') or '{}'))
 
@@ -122,6 +123,7 @@ if __name__ == "__main__":
   parser.add_argument(
     "--task_name", type=str, default="qm9", help=f"choices are {TASKS}"
   )
+  parser.add_argument("--task_id", type=int, default=0, help="number of epochs")
   parser.add_argument("--epoch", type=int, default=20, help="number of epochs")
   # ray args
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
@@ -136,6 +138,7 @@ if __name__ == "__main__":
   parser.add_argument("--name", type=str, default="ray_exp")
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
   parser.add_argument("--num_init", type=int, default=1, help="Number of random initializations >= 0")
+  parser.add_argument("--preprocess_with_sdrf", action="store_true", help="Do the thing the paper is about")
 
   parser.add_argument('--metric', type=str, default='accuracy', help='metric to sort the hyperparameter tuning runs on')
   args = parser.parse_args()
