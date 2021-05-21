@@ -104,13 +104,13 @@ def main(opt):
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
     metric=opt['metric'],
-    mode="max",
+    mode="min",
     max_t=opt["epoch"],
     grace_period=opt["grace_period"],
     reduction_factor=opt["reduction_factor"],
   )
   reporter = CLIReporter(
-    metric_columns=["accuracy", "test_acc", "train_acc", "loss", "training_iteration"]
+    metric_columns=["loss", "train_mae", "val_mae", "training_iteration"]
   )
 
   train_fn = train_ray
