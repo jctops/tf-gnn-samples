@@ -39,9 +39,9 @@ def set_qm9_search_space(opt):
   opt['sdrf_curvature_fn'] = tune.choice(['unbiased_forman'])
   opt['sdrf_consider_positivity'] = tune.choice([True, False])
   opt['sdrf_target_curvature'] = tune.uniform([-0.5, 0.5])
-  opt['sdrf_scaling'] = tune.loguniform([5,100])
+  opt['sdrf_scaling'] = tune.loguniform(5,100)
   # 'max_steps':[2,3,5,10]
-  opt['sdrf_max_steps'] = tune.uniform([0.1, 0.5])
+  opt['sdrf_max_steps'] = tune.uniform(0.1, 0.5)
 
 
 
