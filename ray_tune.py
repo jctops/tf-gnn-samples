@@ -142,6 +142,7 @@ if __name__ == "__main__":
   parser.add_argument(
     "--task_name", type=str, default="qm9", help=f"choices are {TASKS}")
   # ray args
+  parser.add_argument("--task_id", type=int, default=0, help="number of epochs")
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
   parser.add_argument("--cpus", type=float, default=1, help="number of cpus per trial. Can be fractional")

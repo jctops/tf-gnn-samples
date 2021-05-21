@@ -21,6 +21,7 @@ TASKS = ["mu", "alpha", "HOMO", "LUMO", "gap", "R2", "ZPVE", "U0", "U", "H", "G"
 
 
 def setup(opt, data_path='data/qm9'):
+  opt['task_ids'] = [opt['task_id']]
   azure_info_path = opt.get('--azure-info', None)
   # get model and task
   model_cls, additional_model_params = name_to_model_class(opt['model_name'])
@@ -80,7 +81,6 @@ def setup(opt, data_path='data/qm9'):
 
 
 def main(opt):
-
   model = setup(opt)
   for epoch in range(1, opt["epoch"]):
     train_loss, train_task_metrics, train_num_graphs, train_graphs_p_s, train_nodes_p_s, train_edges_p_s = \
