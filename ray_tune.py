@@ -156,6 +156,7 @@ if __name__ == "__main__":
   parser.add_argument("--metric", type=str, default="val_mae", help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
   parser.add_argument("--num_init", type=int, default=1, help="Number of random initializations >= 0")
+  parser.add_argument("--preprocess_with_sdrf", action="store_true", help="Do the thing the paper is about")
   args = parser.parse_args()
 
   opt = vars(args)
