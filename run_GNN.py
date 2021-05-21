@@ -13,14 +13,14 @@ from train import run
 from test import test
 from models import ggnn_model, rgat_model, rgcn_model, rgin_model
 from tasks.qm9_task import QM9_Task
-from tasks import Sparse_Graph_Task, DataFold
+from tasks import DataFold
 from utils.model_utils import name_to_task_class, name_to_model_class
 
 MODEL_TYPES = ["GGNN", "RGCN", "RGAT", "RGIN"]
 TASKS = ["mu", "alpha", "HOMO", "LUMO", "gap", "R2", "ZPVE", "U0", "U", "H", "G", "Cv", "Omega"]
 
 
-def main(opt):
+def setup(opt):
   azure_info_path = opt.get('--azure-info', None)
   # get model and task
   model_cls, additional_model_params = name_to_model_class(opt['model_name'])
@@ -47,6 +47,8 @@ def main(opt):
 
   # Load overrides from command line:
   task_params.update(json.loads(opt.get('--task-param-overrides') or '{}'))
+  task_params['preprocess_with_sdrf'] = False
+  print(f"task parameters: {task_params}")
   model_params.update(json.loads(opt.get('--model-param-overrides') or '{}'))
 
   # Finally, upgrade every parameters that's a path to a RichPath:
@@ -73,20 +75,41 @@ def main(opt):
   model.log_line(" Using the following task params: %s" % json.dumps(task_params_orig))
   model.log_line(" Using the following model params: %s" % json.dumps(model_params))
   model.initialize_model()
-  model.train(quiet=opt.get('--quiet'), tf_summary_path=opt.get('--tensorboard'))
-  test_data_path = opt['test_data_path'] or RichPath.create(model.task.default_data_path())
+  print(f"model dictionary {dir(model)}")
+  return model
 
-  # # get data
+
+def main(opt):
+
+  model = setup(opt)
   for epoch in range(1, opt["epoch"]):
     train_loss, train_task_metrics, train_num_graphs, train_graphs_p_s, train_nodes_p_s, train_edges_p_s = \
-      model.__run_epoch("epoch %i (training)" % epoch,
+      model._Sparse_Graph_Model__run_epoch("epoch %i (training)" % epoch,
                         model.task._loaded_data[DataFold.TRAIN],
-                        DataFold.TRAIN, quite=True)
-    data = model.task._loaded_data.get(DataFold.TEST)
-    if data is None:
-      data = model.task.load_eval_data_from_path(test_data_path)
-    test_loss, test_task_metrics, test_num_graphs, _, _, _ = \
-      model.__run_epoch("Test", data, DataFold.TEST, quiet=True)
+                        DataFold.TRAIN, quiet=False)
+
+    print("\r\x1b[K", end='')
+    model.log_line(" Train: loss: %.5f || %s || graphs/sec: %.2f | nodes/sec: %.0f | edges/sec: %.0f"
+                % (train_loss,
+                   model.task.pretty_print_epoch_task_metrics(train_task_metrics, train_num_graphs),
+                   train_graphs_p_s, train_nodes_p_s, train_edges_p_s))
+
+    valid_loss, valid_task_metrics, valid_num_graphs, valid_graphs_p_s, valid_nodes_p_s, valid_edges_p_s = \
+      model._Sparse_Graph_Model__run_epoch("epoch %i (validation)" % epoch,
+                       model.task._loaded_data[DataFold.VALIDATION],
+                       DataFold.VALIDATION,
+                       quiet=False)
+    print("\r\x1b[K", end='')
+    valid_metric_descr = \
+      model.task.pretty_print_epoch_task_metrics(valid_task_metrics, valid_num_graphs)
+    model.log_line(" Valid: loss: %.5f || %s || graphs/sec: %.2f | nodes/sec: %.0f | edges/sec: %.0f"
+                  % (valid_loss, valid_metric_descr, valid_graphs_p_s, valid_nodes_p_s, valid_edges_p_s))
+
+    # data = model.task._loaded_data.get(DataFold.TEST)
+    # if data is None:
+    #   data = model.task.load_eval_data_from_path(test_data_path)
+    # test_loss, test_task_metrics, test_num_graphs, _, _, _ = \
+    #   model._Sparse_Graph_Model__run_epoch("Test", data, DataFold.TEST, quiet=False)
 
 
 if __name__ == "__main__":

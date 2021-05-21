@@ -3,20 +3,17 @@ distributed hyperparameter tuning
 """
 import argparse
 import os
-import time
 from functools import partial
 
-import numpy as np
 import torch
 
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
-from torch import nn
-from train import run
+from tasks import DataFold
+
 from test import test
-from models import ggnn_model, rgat_model, rgcn_model, rgin_model
-from tasks.qm9_task import QM9_Task
+from run_GNN import setup
 from utils.model_utils import name_to_task_class, name_to_model_class
 
 def average_test(models, datas):
@@ -51,78 +48,34 @@ def set_qm9_search_space(opt):
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
-  # get data
-  task_cls, _ = name_to_task_class('qm9')
-  # get model
-  model_cls, additional_model_params = name_to_model_class(opt['MODEL_NAME'])
-
-  # Collect parameters from first the class defaults, potential task defaults, and then CLI:
-  task_params = task_cls.default_params()
-  model_params = model_cls.default_params()
-  model_params.update(additional_model_params)
-
-
-  for split in range(opt["num_init"]):
-
-
-
-
-
-    # Load potential task-specific defaults:
-    task_model_default_hypers_file = \
-        os.path.join(os.path.dirname(__file__),
-                     "tasks",
-                     "default_hypers",
-                     "%s_%s.json" % (task_cls.name(), model_cls.name(model_params)))
-    if os.path.exists(task_model_default_hypers_file):
-        print("Loading task/model-specific default parameters from %s." % task_model_default_hypers_file)
-        with open(task_model_default_hypers_file, "rt") as f:
-            default_task_model_hypers = json.load(f)
-        task_params.update(default_task_model_hypers['task_params'])
-        model_params.update(default_task_model_hypers['model_params'])
-
-    # Load overrides from command line:
-    task_params.update(json.loads(args.get('--task-param-overrides') or '{}'))
-    model_params.update(json.loads(args.get('--model-param-overrides') or '{}'))
-
-    # Now prepare to actually run by setting up directories, creating object instances and running:
-    result_dir = args.get('--result-dir', 'trained_models')
-    os.makedirs(result_dir, exist_ok=True)
-    task = task_cls(task_params)  # task params needs to contain all flow args
-    data_path = opt.get('--data-path') or task.default_data_path()
-    data_path = RichPath.create(data_path, azure_info_path)
-    task.load_data(data_path)
-
-    model.initialize_model()
-    model.train(quiet=opt.get('--quiet'), tf_summary_path=opt.get('--tensorboard'))
-
-    train_this = train
-
-    models.append(model)
-
-
-    # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
-    # should be restored.
-    if checkpoint_dir:
-      checkpoint = os.path.join(checkpoint_dir, "checkpoint")
-      model_state, optimizer_state = torch.load(checkpoint)
-      model.load_state_dict(model_state)
-      optimizer.load_state_dict(optimizer_state)
+  model = setup(opt)
+  # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
+  # should be restored.
+  # if checkpoint_dir:
+  #   checkpoint = os.path.join(checkpoint_dir, "checkpoint")
+  #   model_state, optimizer_state = torch.load(checkpoint)
+  #   model.load_state_dict(model_state)
+  #   optimizer.load_state_dict(optimizer_state)
 
   for epoch in range(1, opt["epoch"]):
     train_loss, train_task_metrics, train_num_graphs, train_graphs_p_s, train_nodes_p_s, train_edges_p_s = \
-      model.__run_epoch("epoch %i (training)" % epoch,
-                       model.task._loaded_data[DataFold.TRAIN],
-                       DataFold.TRAIN,
-                       quiet=quiet,
-                       summary_writer=train_writer)
-    train_accs, val_accs, tmp_test_accs = average_test(models, datas)
+      model._Sparse_Graph_Model__run_epoch("epoch %i (training)" % epoch,
+                        model.task._loaded_data[DataFold.TRAIN],
+                        DataFold.TRAIN, quiet=False)
 
-    with tune.checkpoint_dir(step=epoch) as checkpoint_dir:
-      best = np.argmax(val_accs)
-      path = os.path.join(checkpoint_dir, "checkpoint")
-      torch.save((models[best].state_dict(), optimizers[best].state_dict()), path)
-    tune.report(loss=train_loss, accuracy=train_task_metrics[f"abs_err_task{opt['task_id']}"])
+    print("\r\x1b[K", end='')
+    model.log_line(" Train: loss: %.5f || %s || graphs/sec: %.2f | nodes/sec: %.0f | edges/sec: %.0f"
+                % (train_loss,
+                   model.task.pretty_print_epoch_task_metrics(train_task_metrics, train_num_graphs),
+                   train_graphs_p_s, train_nodes_p_s, train_edges_p_s))
+
+    valid_loss, valid_task_metrics, valid_num_graphs, valid_graphs_p_s, valid_nodes_p_s, valid_edges_p_s = \
+      model._Sparse_Graph_Model__run_epoch("epoch %i (validation)" % epoch,
+                       model.task._loaded_data[DataFold.VALIDATION],
+                       DataFold.VALIDATION,
+                       quiet=False)
+    tune.report(loss=train_loss, train_mae=train_task_metrics, val_mae=valid_task_metrics, train_nps=train_nodes_p_s,
+                val_nps=valid_nodes_p_s, train_gps=train_graphs_p_s, val_gps=valid_graphs_p_s)
 
     # tune.report(loss=train_loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
 
