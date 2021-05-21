@@ -90,7 +90,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="data/qm9"):
                                            model.task._loaded_data[DataFold.VALIDATION],
                                            DataFold.VALIDATION,
                                            quiet=False)
-    val_metric = get_aggregate_metric(valid_task_metrics, model.taks.params['task_ids'], train_num_graphs)
+    val_metric = get_aggregate_metric(valid_task_metrics, task_ids, train_num_graphs)
 
     tune.report(loss=train_loss, train_mae=train_metric, val_mae=val_metric, train_nps=train_nodes_p_s,
                 val_nps=valid_nodes_p_s, train_gps=train_graphs_p_s, val_gps=valid_graphs_p_s)
