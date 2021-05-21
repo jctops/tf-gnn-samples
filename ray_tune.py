@@ -5,8 +5,6 @@ import argparse
 import os
 from functools import partial
 
-import torch
-
 from ray import tune
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler
@@ -82,7 +80,6 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
 def main(opt):
   data_dir = os.path.abspath("../data")
-  device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
     metric=opt['metric'],
