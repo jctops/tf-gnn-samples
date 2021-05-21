@@ -20,7 +20,7 @@ MODEL_TYPES = ["GGNN", "RGCN", "RGAT", "RGIN"]
 TASKS = ["mu", "alpha", "HOMO", "LUMO", "gap", "R2", "ZPVE", "U0", "U", "H", "G", "Cv", "Omega"]
 
 
-def setup(opt, data_path):
+def setup(opt, data_path='data/qm9'):
   azure_info_path = opt.get('--azure-info', None)
   # get model and task
   model_cls, additional_model_params = name_to_model_class(opt['model_name'])

@@ -47,6 +47,19 @@ def set_qm9_search_space(opt):
   return opt
 
 
+def get_aggregate_metric(task_metric_results, task_ids, num_graphs):
+  fnum_graphs = float(num_graphs)
+  maes = {}
+  for task_id in task_ids:
+    maes['mae_task%i' % task_id] = 0.
+  for batch_task_metric_results in task_metric_results:
+    for task_id in task_ids:
+      maes['mae_task%i' % task_id] += batch_task_metric_results['abs_err_task%i' % task_id] / fnum_graphs
+  # todo I think we just do one task at a time, but flagging in case I'm wrong
+  print(f"mean average errors {maes}")
+  return list(maes.values())[0]
+
+
 def train_ray(opt, checkpoint_dir=None, data_dir="data/qm9"):
   model = setup(opt, data_dir)
   # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
@@ -56,12 +69,15 @@ def train_ray(opt, checkpoint_dir=None, data_dir="data/qm9"):
   #   model_state, optimizer_state = torch.load(checkpoint)
   #   model.load_state_dict(model_state)
   #   optimizer.load_state_dict(optimizer_state)
+  task_ids = model.task.params['task_ids']
 
   for epoch in range(1, opt["epoch"]):
     train_loss, train_task_metrics, train_num_graphs, train_graphs_p_s, train_nodes_p_s, train_edges_p_s = \
       model._Sparse_Graph_Model__run_epoch("epoch %i (training)" % epoch,
                                            model.task._loaded_data[DataFold.TRAIN],
                                            DataFold.TRAIN, quiet=False)
+
+    train_metric = get_aggregate_metric(train_task_metrics, task_ids, train_num_graphs)
 
     print("\r\x1b[K", end='')
     model.log_line(" Train: loss: %.5f || %s || graphs/sec: %.2f | nodes/sec: %.0f | edges/sec: %.0f"
@@ -74,7 +90,9 @@ def train_ray(opt, checkpoint_dir=None, data_dir="data/qm9"):
                                            model.task._loaded_data[DataFold.VALIDATION],
                                            DataFold.VALIDATION,
                                            quiet=False)
-    tune.report(loss=train_loss, train_mae=train_task_metrics, val_mae=valid_task_metrics, train_nps=train_nodes_p_s,
+    val_metric = get_aggregate_metric(valid_task_metrics, model.taks.params['task_ids'], train_num_graphs)
+
+    tune.report(loss=train_loss, train_mae=train_metric, val_mae=val_metric, train_nps=train_nodes_p_s,
                 val_nps=valid_nodes_p_s, train_gps=train_graphs_p_s, val_gps=valid_graphs_p_s)
 
     # tune.report(loss=train_loss, accuracy=np.mean(val_accs), test_acc=np.mean(tmp_test_accs), train_acc=np.mean(train_accs))
@@ -107,8 +125,8 @@ def main(opt):
     config=opt,
     num_samples=opt["num_samples"],
     scheduler=scheduler,
-    max_failures=2,
-    local_dir="../ray_tune",
+    max_failures=0,
+    local_dir="ray_tune",
     progress_reporter=reporter,
     raise_on_failed_trial=False,
   )
