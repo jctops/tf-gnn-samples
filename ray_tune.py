@@ -44,6 +44,7 @@ def set_qm9_search_space(opt):
   opt['sdrf_scaling'] = tune.loguniform(5, 100)
   # 'max_steps':[2,3,5,10]
   opt['sdrf_max_steps'] = tune.uniform(0.1, 0.5)
+  return opt
 
 
 def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
@@ -80,7 +81,8 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
 
 def main(opt):
-  data_dir = os.path.abspath("../data")
+  print(f"running with option {opt}")
+  # data_dir = os.path.abspath("../data")
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
     metric=opt['metric'],
