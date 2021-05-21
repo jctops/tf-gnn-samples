@@ -11,7 +11,7 @@ from ray.tune.schedulers import ASHAScheduler
 from tasks import DataFold
 
 from test import test
-from run_GNN import setup
+from run_GNN import setup, MODEL_TYPES, TASKS
 from utils.model_utils import name_to_task_class, name_to_model_class
 
 
@@ -47,8 +47,8 @@ def set_qm9_search_space(opt):
   return opt
 
 
-def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
-  model = setup(opt)
+def train_ray(opt, checkpoint_dir=None, data_dir="data/qm9"):
+  model = setup(opt, data_dir)
   # The `checkpoint_dir` parameter gets passed by Ray Tune when a checkpoint
   # should be restored.
   # if checkpoint_dir:
@@ -82,7 +82,7 @@ def train_ray(opt, checkpoint_dir=None, data_dir="../data"):
 
 def main(opt):
   print(f"running with option {opt}")
-  # data_dir = os.path.abspath("../data")
+  data_dir = os.path.abspath("data/qm9")
   opt = set_search_space(opt)
   scheduler = ASHAScheduler(
     metric=opt['metric'],
@@ -119,6 +119,10 @@ if __name__ == "__main__":
   parser.add_argument(
     "--dataset", type=str, default="qm9", help="qm9, Cora, Citeseer, Pubmed, Computers, Photo, CoauthorCS"
   )
+  parser.add_argument(
+    "--model_name", type=str, default="ggnn", help=f"choices are {MODEL_TYPES}")
+  parser.add_argument(
+    "--task_name", type=str, default="qm9", help=f"choices are {TASKS}")
   # ray args
   parser.add_argument("--num_samples", type=int, default=20, help="number of ray trials")
   parser.add_argument("--gpus", type=float, default=0, help="number of gpus per trial. Can be fractional")
@@ -129,6 +133,7 @@ if __name__ == "__main__":
   parser.add_argument(
     "--reduction_factor", type=int, default=10, help="number of trials is halved after this many epochs"
   )
+  parser.add_argument("--epoch", type=int, default=100, help="Max number of training epochs.")
   parser.add_argument("--name", type=str, default="ray_exp")
   parser.add_argument("--metric", type=str, default="val_mae", help='metric to sort the hyperparameter tuning runs on')
   parser.add_argument("--num_splits", type=int, default=0, help="Number of random splits >= 0. 0 for planetoid split")
